@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- x64 and ARM64 configurations, warning level, analyzer and language
+       settings come from the repo's Cpp.Build.props; only Win32 and what
+       differs for a console tool are declared here. -->
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{3A7D2C41-8E5B-4F6A-9C0D-1B2E4F5A6C7D}</ProjectGuid>
+    <RootNamespace>ZoomItSmoothingBench</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir>$(RepoRoot)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
+    <IntDir>$(RepoRoot)$(Platform)\$(Configuration)\obj\$(ProjectName)\</IntDir>
+    <TargetName>PowerToys.$(ProjectName)</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles></ForcedIncludeFiles>
+      <PreprocessorDefinitions>_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(RepoRoot)src\modules\ZoomIt\ZoomIt;$(RepoRoot)src\modules\ZoomIt\UnitTests-ZoomItScale;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>gdi32.lib;user32.lib;windowscodecs.lib;ole32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ZoomItSmoothingBench.cpp" />
+    <ClCompile Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\ScaleMetrics.cpp" />
+    <ClCompile Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\ScreenCorpus.cpp" />
+    <ClCompile Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\SmoothingMode.cpp" />
+    <ClCompile Include="..\..\src\modules\ZoomIt\ZoomIt\ZoomItScale.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\GdiSurface.h" />
+    <ClInclude Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\ScaleMetrics.h" />
+    <ClInclude Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\ScreenCorpus.h" />
+    <ClInclude Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\SmoothingMode.h" />
+    <ClInclude Include="..\..\src\modules\ZoomIt\ZoomIt\ZoomItScale.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="make_collateral.py" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

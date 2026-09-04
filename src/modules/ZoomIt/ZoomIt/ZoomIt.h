@@ -20,10 +20,6 @@ typedef HRESULT (__stdcall * type_pEnableThemeDialogTexture)(
                 );
 type_pEnableThemeDialogTexture    pEnableThemeDialogTexture;
 
-// For testing anti-aliased bitmap stretching
-#define SCALE_GDIPLUS		0
-#define SCALE_HALFTONE		0
-
 // sent in mouse message when coming from tablet pen
 #define MI_WP_SIGNATURE		0xFF515700
 

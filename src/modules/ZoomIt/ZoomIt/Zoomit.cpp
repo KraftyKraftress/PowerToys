@@ -21,6 +21,7 @@
 #include "BreakTimer.h"
 #include "PanoramaCapture.h"
 #include "ImageEncoder.h"
+#include "ZoomItScale.h"
 #include <wtsapi32.h>
 #include <tlhelp32.h>
 #include <vector>
@@ -1485,33 +1486,6 @@ void GetZoomedTopLeftCoordinates( float zoomLevel, POINT *cursorPos, int *x, int
     AdjustToMoveBoundary( zoomLevel, x, cursorPos->x, static_cast<int>(scaledWidth), width );
     *y = max( 0, min( (int) (height - scaledHeight), (int) (cursorPos->y - (int) (((float) cursorPos->y/ (float) height)*scaledHeight))));
     AdjustToMoveBoundary( zoomLevel, y, cursorPos->y, static_cast<int>(scaledHeight), height );
-}
-
-
-//----------------------------------------------------------------------------
-//
-// ScaleImage
-//
-// Use gdi+ for anti-aliased bitmap stretching.
-//
-//----------------------------------------------------------------------------
-void ScaleImage( HDC hdcDst, float xDst, float yDst, float wDst, float hDst,
-                 HBITMAP bmSrc, float xSrc, float ySrc, float wSrc, float hSrc )
-{
-    Gdiplus::Graphics	dstGraphics( hdcDst );
-    {
-        Gdiplus::Bitmap		srcBitmap( bmSrc, NULL );
-
-        // Use high quality interpolation when smooth image is enabled
-        if (g_SmoothImage) {
-            dstGraphics.SetInterpolationMode( Gdiplus::InterpolationModeHighQuality );
-        } else {
-            dstGraphics.SetInterpolationMode( Gdiplus::InterpolationModeLowQuality );
-        }
-        dstGraphics.SetPixelOffsetMode( Gdiplus::PixelOffsetModeHalf );
-
-        dstGraphics.DrawImage( &srcBitmap, Gdiplus::RectF(xDst,yDst,wDst,hDst), xSrc, ySrc, wSrc, hSrc, Gdiplus::UnitPixel );
-    }
 }
 
 
@@ -7759,6 +7733,7 @@ LRESULT APIENTRY MainWndProc(
             DeleteDC( hdcScreenSaveCompat );
             DeleteObject( hbmpCompat );
             DeleteObject (hbmpCursorCompat );
+            SmoothStretchRelease();
             DeleteObject( hbmpDrawingCompat );
             DeleteObject( hDrawingPen );
 
@@ -8886,6 +8861,7 @@ LRESULT APIENTRY MainWndProc(
                 DeleteDC( hdcScreenSaveCompat );
                 DeleteDC( hdcScreenCursorCompat );
                 DeleteObject( hbmpCompat );
+                SmoothStretchRelease();
                 EnableDisableScreenSaver( TRUE );
                 EnableDisableOpacity( hWnd, FALSE );
 
@@ -8944,6 +8920,12 @@ LRESULT APIENTRY MainWndProc(
                     hbmpCompat = CreateBitmap(bmp.bmWidth, bmp.bmHeight,
                         bmp.bmPlanes, bmp.bmBitsPixel, static_cast<CONST VOID *>(NULL));
                      SelectObject(hdcScreenCompat, hbmpCompat);
+                    if( g_SmoothImage )
+                    {
+                        // Allocate the smoothing surfaces now rather than in the
+                        // first animation frame.
+                        SmoothStretchPrepare( hdcScreenCompat, bmp.bmWidth, bmp.bmHeight );
+                    }
 
                     // Create saved bitmap
                     hbmpDrawingCompat = CreateBitmap(bmp.bmWidth, bmp.bmHeight,
@@ -11028,28 +11010,29 @@ LRESULT APIENTRY MainWndProc(
                 }
                 else
                 {
-                    // Save zoomed-in image at screen resolution.
-#if SCALE_HALFTONE
-                    const int bltMode = HALFTONE;
-#else
-                    // Use HALFTONE for better quality when smooth image is enabled
-                    const int bltMode = g_SmoothImage ? HALFTONE : COLORONCOLOR;
-#endif
-                    // Recreate the zoomed-in view by upscaling from our source bitmap.
+                    // Save zoomed-in image at screen resolution: recreate the
+                    // zoomed-in view from the source bitmap the same way WM_PAINT does.
                     wil::unique_hdc hdcZoomed( CreateCompatibleDC(hdcScreen) );
                     wil::unique_hbitmap hbmZoomed(
                         CreateCompatibleBitmap( hdcScreen, copyWidth, copyHeight ) );
                     SelectObject( hdcZoomed.get(), hbmZoomed.get() );
 
-                    SetStretchBltMode( hdcZoomed.get(), bltMode );
-
-                    StretchBlt( hdcZoomed.get(),
-                                0, 0,
-                                copyWidth, copyHeight,
-                                hdcActualSize.get(),
-                                0, 0,
-                                saveWidth, saveHeight,
-                                SRCCOPY | CAPTUREBLT );
+                    if( g_SmoothImage )
+                    {
+                        SmoothStretchBlt( hdcZoomed.get(), 0, 0, copyWidth, copyHeight,
+                                          hdcActualSize.get(), 0, 0, saveWidth, saveHeight );
+                    }
+                    else
+                    {
+                        SetStretchBltMode( hdcZoomed.get(), COLORONCOLOR );
+                        StretchBlt( hdcZoomed.get(),
+                                    0, 0,
+                                    copyWidth, copyHeight,
+                                    hdcActualSize.get(),
+                                    0, 0,
+                                    saveWidth, saveHeight,
+                                    SRCCOPY | CAPTUREBLT );
+                    }
 
                     SaveImage( targetFilePath.c_str(), hbmZoomed.get(), imageFormat );
                 }
@@ -11159,24 +11142,14 @@ LRESULT APIENTRY MainWndProc(
             hSaveBitmap = CreateCompatibleBitmap( hdcScreen, copyWidth, copyHeight );
             hSaveDc = CreateCompatibleDC( hdcScreen );
             SelectObject( hSaveDc, hSaveBitmap );
-#if SCALE_HALFTONE
-            SetStretchBltMode( hSaveDc, HALFTONE );
-#else
-            // Use HALFTONE for better quality when smooth image is enabled
-            if (g_SmoothImage) {
-                SetStretchBltMode( hSaveDc, HALFTONE );
-            } else {
-                SetStretchBltMode( hSaveDc, COLORONCOLOR );
-            }
-#endif
-			StretchBlt( hSaveDc,
-                        0, 0,
-                        copyWidth, copyHeight,
-                        hdcScreen,
-                        monInfo.rcMonitor.left + copyX,
-                        monInfo.rcMonitor.top + copyY,
-                        copyWidth, copyHeight,
-                        SRCCOPY|CAPTUREBLT );
+            // A 1:1 copy of what is on screen, already smoothed by WM_PAINT.
+            BitBlt( hSaveDc,
+                    0, 0,
+                    copyWidth, copyHeight,
+                    hdcScreen,
+                    monInfo.rcMonitor.left + copyX,
+                    monInfo.rcMonitor.top + copyY,
+                    SRCCOPY|CAPTUREBLT );
 
             if( OpenClipboard( hWnd )) {
 
@@ -11228,22 +11201,14 @@ LRESULT APIENTRY MainWndProc(
             HBITMAP hSaveBitmap = CreateCompatibleBitmap( hdcScreen, copyWidth, copyHeight );
             HDC hSaveDc = CreateCompatibleDC( hdcScreen );
             SelectObject( hSaveDc, hSaveBitmap );
-            if( g_SmoothImage )
-            {
-                SetStretchBltMode( hSaveDc, HALFTONE );
-            }
-            else
-            {
-                SetStretchBltMode( hSaveDc, COLORONCOLOR );
-            }
-            StretchBlt( hSaveDc,
-                        0, 0,
-                        copyWidth, copyHeight,
-                        hdcScreen,
-                        monInfo.rcMonitor.left + copyX,
-                        monInfo.rcMonitor.top + copyY,
-                        copyWidth, copyHeight,
-                        SRCCOPY | CAPTUREBLT );
+            // A 1:1 copy of what is on screen, already smoothed by WM_PAINT.
+            BitBlt( hSaveDc,
+                    0, 0,
+                    copyWidth, copyHeight,
+                    hdcScreen,
+                    monInfo.rcMonitor.left + copyX,
+                    monInfo.rcMonitor.top + copyY,
+                    SRCCOPY | CAPTUREBLT );
 
             // Run OCR on the captured bitmap
             std::wstring ocrText = OcrFromHBITMAP( hSaveBitmap );
@@ -11563,48 +11528,24 @@ LRESULT APIENTRY MainWndProc(
             OutputDebug( L"PAINT x: %d y: %d width: %d height: %d zoomLevel: %g\n",
                     cursorPos.x, cursorPos.y, width, height, zoomLevel );
             GetZoomedTopLeftCoordinates( zoomLevel, &cursorPos, &x, width, &y, height );
-#if SCALE_GDIPLUS
-            if ( zoomLevel >= zoomTelescopeTarget )  {
-                // do a high-quality render
-                extern void ScaleImage( HDC hdcDst, float xDst, float yDst, float wDst, float hDst,
-                                        HBITMAP bmSrc, float xSrc, float ySrc, float wSrc, float hSrc );
 
-                ScaleImage( ps.hdc,
-                            0, 0,
-                            (float)bmp.bmWidth, (float)bmp.bmHeight,
-                            hbmpCompat,
-                            (float)x, (float)y,
-                            width/zoomLevel, height/zoomLevel );
+            const int srcScaledWidth  = static_cast<int>(width/zoomLevel);
+            const int srcScaledHeight = static_cast<int>(height/zoomLevel);
+
+            if( g_SmoothImage ) {
+                // A HALFTONE StretchBlt cannot keep up with ZOOM_LEVEL_STEP_TIME at 4K.
+                SmoothStretchBlt( ps.hdc, 0, 0, bmp.bmWidth, bmp.bmHeight,
+                                  hdcScreenCompat, x, y, srcScaledWidth, srcScaledHeight );
             } else {
-                // do a fast, less accurate render (but use smooth if enabled)
-                SetStretchBltMode( hDc, g_SmoothImage ? HALFTONE : COLORONCOLOR );
+                SetStretchBltMode( hDc, COLORONCOLOR );
                 StretchBlt( ps.hdc,
                         0, 0,
                         bmp.bmWidth, bmp.bmHeight,
                         hdcScreenCompat,
                         x, y,
-                        (int) (width/zoomLevel), (int) (height/zoomLevel),
-                        SRCCOPY);
+                        srcScaledWidth, srcScaledHeight,
+                        SRCCOPY|CAPTUREBLT );
             }
-#else
-#if SCALE_HALFTONE
-            SetStretchBltMode( hDc, zoomLevel == zoomTelescopeTarget ? HALFTONE : COLORONCOLOR );
-#else
-            // Use HALFTONE for better quality when smooth image is enabled
-            if (g_SmoothImage) {
-                SetStretchBltMode( hDc, HALFTONE );
-            } else {
-                SetStretchBltMode( hDc, COLORONCOLOR );
-            }
-#endif
-            StretchBlt( ps.hdc,
-                    0, 0,
-                    bmp.bmWidth, bmp.bmHeight,
-                    hdcScreenCompat,
-                    x, y,
-                    static_cast<int>(width/zoomLevel), static_cast<int>(height/zoomLevel),
-                    SRCCOPY|CAPTUREBLT );
-#endif
         } else if( g_TimerActive ) {
 
             // Fill background (white by default, black if saved as 1)

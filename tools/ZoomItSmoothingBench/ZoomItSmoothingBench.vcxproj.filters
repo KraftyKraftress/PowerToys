@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx</Extensions>
+    </Filter>
+    <Filter Include="Shared With Tests">
+      <UniqueIdentifier>{B1C3E5A7-2D4F-4C6E-8A0B-3E5D7F9A1C2B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ZoomItSmoothingBench.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\ScaleMetrics.cpp">
+      <Filter>Shared With Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\ScreenCorpus.cpp">
+      <Filter>Shared With Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\SmoothingMode.cpp">
+      <Filter>Shared With Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\modules\ZoomIt\ZoomIt\ZoomItScale.cpp">
+      <Filter>Shared With Tests</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\GdiSurface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\ScaleMetrics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\ScreenCorpus.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\modules\ZoomIt\UnitTests-ZoomItScale\SmoothingMode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\modules\ZoomIt\ZoomIt\ZoomItScale.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="make_collateral.py" />
+  </ItemGroup>
+</Project>
