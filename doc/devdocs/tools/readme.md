@@ -14,3 +14,4 @@ Following tools are currently available:
 * [project template](/tools/project_template/README.md) - A Visual Studio project template for a new PowerToys project.
 * [StylesReportTool](styles-report-tool.md) - A tool to collect information about an open window.
 * [Verification scripts](verification-scripts.md) - A set of scripts that help verifying the PowerToys installation.
+* [ZoomIt smoothing bench](zoomit-smoothing-bench.md) - Speed and quality measurements for the ZoomIt zoomed-image smoothing kernel.

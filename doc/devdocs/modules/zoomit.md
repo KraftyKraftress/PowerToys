@@ -50,7 +50,8 @@ src/
 │   └── ZoomIt/
 │       ├── ZoomIt/             # Main ZoomIt application code
 │       ├── ZoomItModuleInterface/  # PowerToys module interface implementation
-│       └── ZoomItSettingsInterop/  # WinRT/C++ interop for settings
+│       ├── ZoomItSettingsInterop/  # WinRT/C++ interop for settings
+│       └── UnitTests-ZoomItScale/  # Native tests for the zoomed-image smoothing kernel
 ├── settings-ui/
 │   └── Settings.UI/
 │       ├── SettingsXAML/
@@ -142,6 +143,10 @@ ZoomIt requires storing font information as a binary LOGFONT structure in the re
 - Creating P/Invoke declarations for Windows font APIs
 - Base64 encoding the binary data for transfer through JSON
 - Using native Windows dialogs for font selection
+
+### Zoomed-Image Smoothing
+
+With **Smooth the zoomed image** enabled, the zoom window is painted by `SmoothStretchBlt` in `ZoomIt/ZoomItScale.cpp` rather than a `HALFTONE` `StretchBlt`, which was too slow to keep up with the zoom animation at 4K. It is a separable 4-tap cubic (Mitchell-Netravali, B=1/6 C=1/2, fitted to match `HALFTONE`'s stroke darkness) in fixed point, split across the thread pool, using SSE2 with AVX2 at run time on x64/x86 and NEON on ARM64. Magnification only. `ZoomIt.Scale.UnitTests` compiles the same source and checks it against a floating-point reference and against `HALFTONE` over a lossless screenshot (`%ZOOMIT_SCALE_CORPUS%`, or a synthetic screen when none is present). Frame times and quality metrics come from the [ZoomIt smoothing bench](../tools/zoomit-smoothing-bench.md) tool.
 
 ### Hotkey Management
 
